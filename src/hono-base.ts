@@ -7,7 +7,7 @@
 import { compose } from './compose'
 import { Context } from './context'
 import type { ExecutionContext } from './context'
-import type { Router } from './router'
+import type { Result, Router } from './router'
 import { METHODS, METHOD_NAME_ALL, METHOD_NAME_ALL_LOWERCASE } from './router'
 import type {
   Env,
@@ -121,6 +121,7 @@ class Hono<E extends Env = Env, S extends Schema = {}, BasePath extends string =
   #path: string = '/'
 
   routes: RouterRoute[] = []
+  routingCache: Map<[string, string], Result<[H, RouterRoute]>> = new Map()
 
   constructor(options: HonoOptions<E> = {}) {
     // Implementation of app.get(...handlers[]) or app.get(path, ...handlers[])
@@ -378,6 +379,7 @@ class Hono<E extends Env = Env, S extends Schema = {}, BasePath extends string =
     const r: RouterRoute = { path, method, handler }
     this.router.add(method, path, [handler, r])
     this.routes.push(r)
+    this.routingCache = new Map()
   }
 
   #handleError(err: unknown, c: Context<E>) {
@@ -400,7 +402,16 @@ class Hono<E extends Env = Env, S extends Schema = {}, BasePath extends string =
     }
 
     const path = this.getPath(request, { env })
-    const matchResult = this.router.match(method, path)
+    const routeCache = this.routingCache.get([method, path])
+
+    let matchResult: Result<[H, RouterRoute]>
+    if(routeCache === void 0) {
+      const route = this.router.match(method, path)
+      this.routingCache.set([method, path], route)
+      matchResult = route
+    } else {
+      matchResult = routeCache
+    }
 
     const c = new Context(request, {
       path,
