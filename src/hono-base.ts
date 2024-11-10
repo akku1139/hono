@@ -7,7 +7,7 @@
 import { compose } from './compose'
 import { Context } from './context'
 import type { ExecutionContext } from './context'
-import type { Router } from './router'
+import type { Router, Result } from './router'
 import { METHODS, METHOD_NAME_ALL, METHOD_NAME_ALL_LOWERCASE } from './router'
 import type {
   Env,
@@ -121,6 +121,13 @@ class Hono<E extends Env = Env, S extends Schema = {}, BasePath extends string =
   #path: string = '/'
 
   routes: RouterRoute[] = []
+
+  /**
+   * Flag indicating whether routes changed since the last match() .
+   */
+  #routesChangedSinceLastMatch: boolean = false
+
+  #routeCache = new Map<string, Result<[H, RouterRoute]>>()
 
   constructor(options: HonoOptions<E> = {}) {
     // Implementation of app.get(...handlers[]) or app.get(path, ...handlers[])
@@ -378,6 +385,7 @@ class Hono<E extends Env = Env, S extends Schema = {}, BasePath extends string =
     const r: RouterRoute = { path, method, handler }
     this.router.add(method, path, [handler, r])
     this.routes.push(r)
+    this.#routesChangedSinceLastMatch = true
   }
 
   #handleError(err: unknown, c: Context<E>) {
@@ -401,6 +409,7 @@ class Hono<E extends Env = Env, S extends Schema = {}, BasePath extends string =
 
     const path = this.getPath(request, { env })
     const matchResult = this.router.match(method, path)
+    this.#routesChangedSinceLastMatch = false
 
     const c = new Context(request, {
       path,

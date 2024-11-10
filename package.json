@@ -294,6 +294,11 @@
       "import": "./dist/router/linear-router/index.js",
       "require": "./dist/cjs/router/linear-router/index.js"
     },
+    "./router/cache-router": {
+      "types": "./dist/types/router/cache-router/index.d.ts",
+      "import": "./dist/router/cache-router/index.js",
+      "require": "./dist/cjs/router/cache-router/index.js"
+    },
     "./utils/jwt": {
       "types": "./dist/types/utils/jwt/index.d.ts",
       "import": "./dist/utils/jwt/index.js",
